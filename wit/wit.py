@@ -39,12 +39,22 @@ def req(logger, access_token, meth, path, params, **kwargs):
             + rsp.reason
             + ")"
         )
-    json = rsp.json()
-    if "error" in json:
-        raise WitError("Wit responded with an error: " + json["error"])
+    try:
+        _json = rsp.json()
+        if "error" in _json:
+            raise WitError("Wit responded with an error: " + _json["error"])
+    except json.decoder.JSONDecodeError as e:
+        logger.debug(
+            "Wit reponse is not standardized JSON, attempting an array.")
+        _json = []
+        for line in rsp.text.split("\r"):
+            l = line.strip()
+            if not l:
+                continue
+            _json.append(json.loads(l))
 
-    logger.debug("%s %s %s", meth, full_url, json)
-    return json
+    logger.debug("%s %s %s", meth, full_url, _json)
+    return _json
 
 
 class Wit(object):
